@@ -27,6 +27,24 @@
           />
         </div>
 
+        <!-- Prompt Selection -->
+        <div class="prompt-selector" v-if="availablePrompts.length > 0">
+          <label for="prompt-select">Analysis Style:</label>
+          <select 
+            id="prompt-select" 
+            v-model="selectedPromptId" 
+            class="prompt-select"
+          >
+            <option 
+              v-for="prompt in availablePrompts" 
+              :key="prompt.id" 
+              :value="prompt.id"
+            >
+              {{ prompt.name }}
+            </option>
+          </select>
+        </div>
+
         <button 
           class="analyze-btn"
           @click="analyzProfile"
@@ -58,6 +76,69 @@
           <div class="feature-text">Deep Analysis</div>
         </div>
       </div>
+
+      <!-- Error Message -->
+      <div v-if="errorMessage" class="error-message">
+        ❌ {{ errorMessage }}
+      </div>
+
+      <!-- Steam Data Display -->
+      <div v-if="steamData" class="results-section">
+        <div class="steam-card">
+          <div class="steam-header">
+            <h2>🎮 Steam Profile</h2>
+            <div class="player-info">
+              <img :src="steamData.player.avatar" :alt="steamData.player.name" class="player-avatar" />
+              <div>
+                <div class="player-name">{{ steamData.player.name }}</div>
+                <div class="player-stats">
+                  {{ steamData.stats.totalGames }} games | 
+                  {{ Math.floor(steamData.stats.totalPlaytime / 60) }} hours total
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="top-games">
+            <h3>Top 10 Most Played Games</h3>
+            <div class="games-list">
+              <div 
+                v-for="(game, index) in steamData.games.slice(0, 10)" 
+                :key="game.appId"
+                class="game-item"
+              >
+                <span class="game-rank">{{ index + 1 }}</span>
+                <span class="game-name">{{ game.name }}</span>
+                <span class="game-hours">{{ game.playtimeHours }}h</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Analysis Section -->
+        <div class="ai-card">
+          <div class="ai-header">
+            <h2>🤖 AI Analysis</h2>
+          </div>
+          
+          <div v-if="aiLoading" class="ai-loading">
+            <div class="spinner"></div>
+            <p>AI is analyzing your gaming profile...</p>
+          </div>
+          
+          <div v-else-if="aiAnalysis" class="ai-content">
+            <pre class="ai-text">{{ aiAnalysis }}</pre>
+          </div>
+          
+          <div v-else-if="aiError" class="ai-warning">
+            ⚠️ {{ aiError }}
+          </div>
+          
+          <div v-else class="ai-info">
+            💡 Waiting for AI analysis...
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -65,18 +146,47 @@
 <script setup lang="ts">
 import type { SteamApiResponse } from '../types/steam'
 
+interface PromptInfo {
+  id: string
+  name: string
+  description: string
+}
+
 const steamId = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
+const steamData = ref<SteamApiResponse | null>(null)
+const aiAnalysis = ref<string | null>(null)
+const aiLoading = ref(false)
+const aiError = ref('')
+const availablePrompts = ref<PromptInfo[]>([])
+const selectedPromptId = ref('default')
+
+// Fetch available prompts on component mount
+onMounted(async () => {
+  try {
+    const response = await $fetch<{ prompts: PromptInfo[] }>('/api/steam/prompts')
+    availablePrompts.value = response.prompts
+  } catch (error) {
+    console.error('Failed to fetch prompts:', error)
+    // Set default prompt if fetch fails
+    availablePrompts.value = [
+      { id: 'default', name: 'Default Analysis', description: 'Standard analysis' }
+    ]
+  }
+})
 
 const analyzProfile = async () => {
   if (!steamId.value.trim()) return
   
   loading.value = true
   errorMessage.value = ''
+  steamData.value = null
+  aiAnalysis.value = null
+  aiError.value = ''
   
   try {
-    // invoke the API to fetch Steam data
+    // 第一步：获取 Steam 数据
     const data = await $fetch<SteamApiResponse>('/api/steam/games', {
       params: {
         steamId: steamId.value
@@ -89,6 +199,12 @@ const analyzProfile = async () => {
     console.log('Total Games:', data.games.length)
     console.log('Top 5 Games:', data.games.slice(0, 5))
     
+    // Save and display Steam data
+    steamData.value = data
+    
+    // Step 2: Send data to AI for analysis
+    fetchAIAnalysis(data)
+    
   } catch (error: any) {
     console.error('Error fetching Steam data:', error)
     errorMessage.value = error?.data?.message || 'Failed to fetch Steam data. Please check the Steam ID and try again.'
@@ -96,6 +212,37 @@ const analyzProfile = async () => {
     loading.value = false
   }
 }
+
+const fetchAIAnalysis = async (data: SteamApiResponse) => {
+  aiLoading.value = true
+  aiError.value = ''
+  
+  try {
+    console.log(`=== Sending to AI for Analysis (using prompt: ${selectedPromptId.value}) ===`)
+    
+    const response = await $fetch<{ success: boolean; analysis: string | null }>('/api/steam/analyze', {
+      method: 'POST',
+      body: data,
+      params: {
+        promptId: selectedPromptId.value
+      }
+    })
+    
+    if (response.success && response.analysis) {
+      aiAnalysis.value = response.analysis
+      console.log('=== AI Analysis Retrieved ===')
+      console.log(response.analysis)
+    } else {
+      aiError.value = 'AI analysis returned empty result'
+    }
+  } catch (error: any) {
+    console.error('Error fetching AI analysis:', error)
+    aiError.value = error?.data?.message || 'Failed to get AI analysis. Please check if GEMINI_API_KEY is configured.'
+  } finally {
+    aiLoading.value = false
+  }
+}
+
 </script>
 
 <style>
@@ -267,6 +414,51 @@ body {
   color: #718096;
 }
 
+/* Prompt Selector Styles */
+.prompt-selector {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.prompt-selector label {
+  color: #cbd5e0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.prompt-select {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 8px;
+  color: #e0e6ff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.prompt-select:hover {
+  border-color: rgba(102, 126, 234, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.prompt-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 15px rgba(102, 126, 234, 0.2);
+}
+
+.prompt-select option {
+  background: #1a1f3a;
+  color: #e0e6ff;
+  padding: 0.5rem;
+}
+
 .analyze-btn {
   width: 100%;
   padding: 1.2rem;
@@ -398,5 +590,210 @@ body {
   .main-content {
     padding: 2rem 1rem;
   }
+}
+
+/* Results Section Styles */
+.results-section {
+  margin-top: 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.steam-card,
+.ai-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.steam-header,
+.ai-header {
+  margin-bottom: 1.5rem;
+}
+
+.steam-header h2,
+.ai-header h2 {
+  font-size: 1.5rem;
+  margin: 0 0 1rem 0;
+  color: #e0e6ff;
+  font-weight: 600;
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+}
+
+.player-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid rgba(124, 58, 237, 0.5);
+}
+
+.player-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #e0e6ff;
+  margin-bottom: 0.25rem;
+}
+
+.player-stats {
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.top-games {
+  margin-top: 1.5rem;
+}
+
+.top-games h3 {
+  font-size: 1.1rem;
+  color: #cbd5e0;
+  margin: 0 0 1rem 0;
+  font-weight: 500;
+}
+
+.games-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.game-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.game-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateX(4px);
+}
+
+.game-rank {
+  font-weight: 700;
+  color: #667eea;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.game-name {
+  flex: 1;
+  color: #e0e6ff;
+  font-size: 0.95rem;
+}
+
+.game-hours {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* AI Analysis Styles */
+.ai-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(124, 58, 237, 0.2);
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.ai-loading p {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.ai-content {
+  margin-top: 0.5rem;
+}
+
+.ai-text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #cbd5e0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  border-left: 4px solid rgba(124, 58, 237, 0.6);
+}
+
+.ai-warning,
+.ai-info {
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.ai-warning {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+}
+
+.ai-info {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+.error-message {
+  margin-top: 1rem;
+  padding: 1rem 1.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #f87171;
+  font-size: 0.95rem;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  75% { transform: translateX(10px); }
 }
 </style>

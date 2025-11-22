@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // fetch owned games
+    // Fetch owned games from Steam API
     const gamesResponse = await $fetch(
       `http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/`,
       {
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
       }
     )
 
-    // fetch player summaries
+    // Fetch player summaries from Steam API
     const playerResponse = await $fetch(
       `http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/`,
       {
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
     const games = (gamesResponse as any)?.response?.games || []
     const player = (playerResponse as any)?.response?.players?.[0] || null
 
-    // log to server console
+    // Log to server console for debugging
     console.log('=== Steam Player Info ===')
     console.log('Player:', player?.personaname)
     console.log('Total Games:', games.length)
@@ -63,6 +63,7 @@ export default defineEventHandler(async (event) => {
       console.log(`${index + 1}. ${game.name} - ${hours} hours`)
     })
 
+    // Return formatted data to frontend
     return {
       player: {
         steamId: player?.steamid,
