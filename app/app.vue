@@ -7,7 +7,48 @@
       <div class="orb orb-3"></div>
     </div>
     
-    <main class="main-content">
+    <!-- Left Sidebar: Steam Data (Outside main-content, fixed) -->
+    <aside v-if="steamData" class="steam-sidebar">
+      <div class="steam-card sticky-card">
+        <div class="player-info">
+          <img :src="steamData.player.avatar" :alt="steamData.player.name" class="player-avatar" />
+          <div>
+            <div class="player-name">{{ steamData.player.name }}</div>
+            <div class="player-stats">
+              {{ steamData.stats.totalGames }} games | 
+              {{ Math.floor(steamData.stats.totalPlaytime / 60) }} hours total
+            </div>
+          </div>
+        </div>
+        
+        <div class="top-games">
+          <h3>Top 10 Most Played Games</h3>
+          <div class="games-list">
+            <div 
+              v-for="(game, index) in sortedGames.slice(0, 10)" 
+              :key="game.appId"
+              class="game-item"
+            >
+              <div class="game-info">
+                <span class="game-rank">{{ index + 1 }}</span>
+                <span class="game-name">{{ game.name }}</span>
+                <span class="game-hours">{{ game.playtimeHours }}h</span>
+              </div>
+              <div class="progress-bar-container">
+                <div 
+                  class="progress-bar" 
+                  :style="{ 
+                    width: (game.playtimeHours / maxPlaytime * 100) + '%'
+                  }"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+    
+    <main class="main-content" :class="{ 'with-sidebar': steamData }">
       <div class="header">
         <h1 class="title">
           <span class="title-icon">🎮</span>
@@ -82,40 +123,8 @@
         ❌ {{ errorMessage }}
       </div>
 
-      <!-- Steam Data Display -->
-      <div v-if="steamData" class="results-section">
-        <div class="steam-card">
-          <div class="steam-header">
-            <h2>🎮 Steam Profile</h2>
-            <div class="player-info">
-              <img :src="steamData.player.avatar" :alt="steamData.player.name" class="player-avatar" />
-              <div>
-                <div class="player-name">{{ steamData.player.name }}</div>
-                <div class="player-stats">
-                  {{ steamData.stats.totalGames }} games | 
-                  {{ Math.floor(steamData.stats.totalPlaytime / 60) }} hours total
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="top-games">
-            <h3>Top 10 Most Played Games</h3>
-            <div class="games-list">
-              <div 
-                v-for="(game, index) in steamData.games.slice(0, 10)" 
-                :key="game.appId"
-                class="game-item"
-              >
-                <span class="game-rank">{{ index + 1 }}</span>
-                <span class="game-name">{{ game.name }}</span>
-                <span class="game-hours">{{ game.playtimeHours }}h</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- AI Analysis Section -->
+      <!-- AI Analysis (Right Column Only) -->
+      <div v-if="steamData" class="ai-section">
         <div class="ai-card">
           <div class="ai-header">
             <h2>🤖 AI Analysis</h2>
@@ -127,6 +136,12 @@
           </div>
           
           <div v-else-if="aiAnalysis" class="ai-content">
+            <!-- Radar Chart -->
+            <div v-if="radarDimensions.length === 6" class="radar-section">
+              <RadarChart :dimensions="radarDimensions" :size="500" />
+            </div>
+            
+            <!-- AI Text Analysis -->
             <pre class="ai-text">{{ aiAnalysis }}</pre>
           </div>
           
@@ -144,12 +159,19 @@
 </template>
 
 <script setup lang="ts">
+import RadarChart from '../components/RadarChart.vue'
 import type { SteamApiResponse } from '../types/steam'
 
 interface PromptInfo {
   id: string
   name: string
   description: string
+}
+
+interface RadarDimension {
+  name: string
+  value: number
+  description?: string
 }
 
 const steamId = ref('')
@@ -161,6 +183,64 @@ const aiLoading = ref(false)
 const aiError = ref('')
 const availablePrompts = ref<PromptInfo[]>([])
 const selectedPromptId = ref('default')
+const radarDimensions = ref<RadarDimension[]>([])
+
+// Computed: Sorted games by playtime
+const sortedGames = computed(() => {
+  if (!steamData.value) return []
+  return [...steamData.value.games].sort((a, b) => b.playtimeForever - a.playtimeForever)
+})
+
+// Computed: Max playtime for progress bar calculation
+const maxPlaytime = computed(() => {
+  if (!sortedGames.value.length) return 1
+  return sortedGames.value[0]?.playtimeHours || 1
+})
+
+// Parse radar dimensions from AI analysis
+const parseRadarDimensions = (text: string): RadarDimension[] => {
+  const dimensions: RadarDimension[] = []
+  
+  // Match the format: *   维度名称:数字 (说明文字)
+  // Example: *   时间管理大师指数:1.8 (毕竟还是有时间玩这么多游戏)
+  const pattern = /\*\s*([^:：\n]+)[：:]\s*(\d+(?:\.\d+)?)\s*(?:\(([^)]+)\))?/g
+  
+  const matches = text.matchAll(pattern)
+  for (const match of matches) {
+    if (match[1] && match[2]) {
+      const name = match[1].trim()
+      const value = parseFloat(match[2])
+      const description = match[3] ? match[3].trim() : ''
+      
+      // Filter out invalid entries (0-5 scale)
+      if (value >= 0 && value <= 5 && name.length > 1 && name.length < 30) {
+        dimensions.push({ 
+          name, 
+          value,
+          description
+        })
+      }
+    }
+  }
+  
+  console.log('Parsed dimensions:', dimensions)
+  
+  // If we couldn't find exactly 6 dimensions, create default ones
+  if (dimensions.length < 6) {
+    console.warn('Could not parse 6 dimensions from AI response, using defaults')
+    return [
+      { name: '动作指数', value: 3.5, description: '快节奏游戏偏好' },
+      { name: '策略思维', value: 3.0, description: '战术规划能力' },
+      { name: '竞技欲望', value: 4.0, description: '对抗与竞争' },
+      { name: '合作精神', value: 3.5, description: '团队配合意识' },
+      { name: '挑战热情', value: 4.0, description: '追求高难度' },
+      { name: '创造力', value: 3.0, description: '沙盒建造倾向' }
+    ]
+  }
+  
+  // Limit to 6 dimensions for hexagon
+  return dimensions.slice(0, 6)
+}
 
 // Fetch available prompts on component mount
 onMounted(async () => {
@@ -230,8 +310,11 @@ const fetchAIAnalysis = async (data: SteamApiResponse) => {
     
     if (response.success && response.analysis) {
       aiAnalysis.value = response.analysis
+      radarDimensions.value = parseRadarDimensions(response.analysis)
       console.log('=== AI Analysis Retrieved ===')
       console.log(response.analysis)
+      console.log('=== Radar Dimensions ===')
+      console.log(radarDimensions.value)
     } else {
       aiError.value = 'AI analysis returned empty result'
     }
@@ -578,26 +661,43 @@ body {
   font-weight: 500;
 }
 
-@media (max-width: 640px) {
-  .title {
-    font-size: 2rem;
+/* Steam Sidebar - Fixed on left, outside main-content */
+.steam-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 340px;
+  height: 100vh;
+  padding: 2rem 1.5rem 2rem 1.5rem;
+  overflow-y: auto;
+  z-index: 100;
+  animation: slideInLeft 0.5s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
   }
-  
-  .features {
-    grid-template-columns: 1fr;
-  }
-  
-  .main-content {
-    padding: 2rem 1rem;
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
-/* Results Section Styles */
-.results-section {
+/* Custom scrollbar for steam sidebar */
+.steam-sidebar::-webkit-scrollbar {
+  display: none;
+}
+
+.steam-sidebar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* AI Section */
+.ai-section {
   margin-top: 3rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
   animation: slideUp 0.5s ease-out;
 }
 
@@ -612,14 +712,57 @@ body {
   }
 }
 
+.sticky-card {
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+}
+
+@media (max-width: 640px) {
+  .title {
+    font-size: 2rem;
+  }
+  
+  .features {
+    grid-template-columns: 1fr;
+  }
+  
+  .main-content {
+    padding: 2rem 1rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .steam-sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+}
+
+/* Custom scrollbar for sticky card */
+.sticky-card::-webkit-scrollbar {
+  display: none;
+}
+
+.sticky-card {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 .steam-card,
 .ai-card {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  padding: 2rem;
+  padding: 1.5rem;
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.ai-card {
+  padding: 2rem;
 }
 
 .steam-header,
@@ -627,7 +770,13 @@ body {
   margin-bottom: 1.5rem;
 }
 
-.steam-header h2,
+.steam-header h2 {
+  font-size: 1.2rem;
+  margin: 0 0 1rem 0;
+  color: #e0e6ff;
+  font-weight: 600;
+}
+
 .ai-header h2 {
   font-size: 1.5rem;
   margin: 0 0 1rem 0;
@@ -638,39 +787,36 @@ body {
 .player-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0.75rem;
+  padding: 0.75rem;
   background: rgba(255, 255, 255, 0.03);
   border-radius: 12px;
+  margin-bottom: 1.25rem;
 }
 
 .player-avatar {
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   border: 2px solid rgba(124, 58, 237, 0.5);
 }
 
 .player-name {
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #e0e6ff;
   margin-bottom: 0.25rem;
 }
 
 .player-stats {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #94a3b8;
 }
 
-.top-games {
-  margin-top: 1.5rem;
-}
-
 .top-games h3 {
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: #cbd5e0;
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.75rem 0;
   font-weight: 500;
 }
 
@@ -682,36 +828,72 @@ body {
 
 .game-item {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.75rem;
   background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  border-radius: 10px;
+  transition: all 0.3s ease;
 }
 
 .game-item:hover {
   background: rgba(255, 255, 255, 0.06);
-  transform: translateX(4px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.game-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .game-rank {
   font-weight: 700;
   color: #667eea;
-  min-width: 2rem;
+  min-width: 1.5rem;
   text-align: center;
+  font-size: 0.9rem;
 }
 
 .game-name {
   flex: 1;
   color: #e0e6ff;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .game-hours {
   color: #94a3b8;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-width: 45px;
+  text-align: right;
+}
+
+/* Progress Bar Styles */
+.progress-bar-container {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 3px;
+  position: relative;
+  transition: width 0.8s ease-out;
+}
+
+.progress-shimmer {
+  display: none;
 }
 
 /* AI Analysis Styles */
@@ -745,6 +927,15 @@ body {
 
 .ai-content {
   margin-top: 0.5rem;
+}
+
+.radar-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
 }
 
 .ai-text {
@@ -795,5 +986,63 @@ body {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-10px); }
   75% { transform: translateX(10px); }
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .results-container {
+    grid-template-columns: 280px 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .results-container {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .sticky-card {
+    position: relative;
+    top: 0;
+    max-height: none;
+  }
+  
+  .left-column {
+    order: 1;
+  }
+  
+  .right-column {
+    order: 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .game-info {
+    flex-wrap: wrap;
+  }
+  
+  .game-name {
+    flex: 1 1 100%;
+    order: 2;
+    margin-top: 0.25rem;
+  }
+  
+  .game-rank {
+    order: 1;
+  }
+  
+  .game-hours {
+    order: 3;
+  }
+  
+  .prompt-selector {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .prompt-selector label {
+    margin-bottom: 0.5rem;
+  }
 }
 </style>
