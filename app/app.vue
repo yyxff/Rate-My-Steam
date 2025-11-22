@@ -63,19 +63,38 @@
 </template>
 
 <script setup lang="ts">
+import type { SteamApiResponse } from '../types/steam'
+
 const steamId = ref('')
 const loading = ref(false)
+const errorMessage = ref('')
 
 const analyzProfile = async () => {
   if (!steamId.value.trim()) return
   
   loading.value = true
+  errorMessage.value = ''
   
-  // TODO: backend API
-  setTimeout(() => {
+  try {
+    // invoke the API to fetch Steam data
+    const data = await $fetch<SteamApiResponse>('/api/steam/games', {
+      params: {
+        steamId: steamId.value
+      }
+    })
+    
+    console.log('=== Steam Data Retrieved ===')
+    console.log('Player:', data.player)
+    console.log('Stats:', data.stats)
+    console.log('Total Games:', data.games.length)
+    console.log('Top 5 Games:', data.games.slice(0, 5))
+    
+  } catch (error: any) {
+    console.error('Error fetching Steam data:', error)
+    errorMessage.value = error?.data?.message || 'Failed to fetch Steam data. Please check the Steam ID and try again.'
+  } finally {
     loading.value = false
-    console.log('Analyzing:', steamId.value)
-  }, 2000)
+  }
 }
 </script>
 

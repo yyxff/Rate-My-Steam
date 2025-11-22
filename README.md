@@ -1,75 +1,100 @@
-# Nuxt Minimal Starter
+# Rate My Steam - Steam Library Analysis Tool
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+A web application that analyzes Steam players' game libraries using AI.
 
-## Setup
+## Features
 
-Make sure to install dependencies:
+- 🎮 Fetch Steam player game library data
+- 🧠 AI-driven player personality analysis
+- 🎯 Gaming style analysis
+- 📊 Deep data insights
+- 🔗 Shareable links
+
+## Tech Stack
+
+- **Frontend**: Nuxt 3 + Vue 3 + TypeScript
+- **Backend**: Nuxt Server API
+- **API**: Steam Web API
+
+## Getting Started
+
+### 1. Install Dependencies
 
 ```bash
-# npm
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
+### 2. Configure Steam API Key
 
-Start the development server on `http://localhost:3000`:
+1. Visit [Steam Web API Key](https://steamcommunity.com/dev/apikey) to get your API Key
+2. Copy `.env.example` to `.env`
+3. Add your Steam API Key in the `.env` file:
+
+```env
+STEAM_API_KEY=your_steam_api_key_here
+```
+
+### 3. Start Development Server
 
 ```bash
-# npm
 npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+Visit http://localhost:3000
 
-Build the application for production:
+## How to Get Steam ID
 
-```bash
-# npm
-npm run build
+There are several ways to get a Steam ID:
 
-# pnpm
-pnpm build
+1. **From Steam Profile URL**: 
+   - If your URL is `steamcommunity.com/id/yourusername`, use `yourusername`
+   - If it's `steamcommunity.com/profiles/76561198XXXXXXXX`, use the numeric ID
 
-# yarn
-yarn build
+2. **Use Third-party Tools**: 
+   - Visit [SteamID.io](https://steamid.io/) and enter your Steam profile link
 
-# bun
-bun run build
+## API Documentation
+
+### GET `/api/steam/games`
+
+Fetch player's game library data
+
+**Parameters**:
+- `steamId` (required): Steam player ID
+
+**Response Example**:
+```json
+{
+  "player": {
+    "steamId": "76561198XXXXXXXX",
+    "name": "PlayerName",
+    "avatar": "https://...",
+    "profileUrl": "https://..."
+  },
+  "stats": {
+    "totalGames": 150,
+    "totalPlaytime": 50000
+  },
+  "games": [
+    {
+      "appId": 730,
+      "name": "Counter-Strike: Global Offensive",
+      "playtimeForever": 5000,
+      "playtimeHours": 83
+    }
+  ]
+}
 ```
 
-Locally preview production build:
+## Development Roadmap
 
-```bash
-# npm
-npm run preview
+- [x] Frontend interface design
+- [x] Steam API integration
+- [ ] AI analysis features
+- [ ] Results page display
+- [ ] Share functionality
+- [ ] Data visualization
 
-# pnpm
-pnpm preview
+## License
 
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+MIT
