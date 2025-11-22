@@ -136,13 +136,33 @@
           </div>
           
           <div v-else-if="aiAnalysis" class="ai-content">
+            <!-- Personality Title -->
+            <PersonalityTitle v-if="personalityTitle" :title="personalityTitle" />
+            
+            <!-- Victim Profile (受害者档案) -->
+            <VictimProfile 
+              v-if="steamData"
+              :playerName="steamData.player.name"
+              :totalGames="steamData.stats.totalGames"
+              :totalHours="Math.floor(steamData.stats.totalPlaytime / 60)"
+            />
+            
+            <!-- Roast Analysis (罪证分析) -->
+            <RoastAnalysis v-if="roastContent" :content="roastContent" />
+            
             <!-- Radar Chart -->
             <div v-if="radarDimensions.length === 6" class="radar-section">
               <RadarChart :dimensions="radarDimensions" :size="500" />
             </div>
             
-            <!-- AI Text Analysis -->
-            <pre class="ai-text">{{ aiAnalysis }}</pre>
+            <!-- Evidence List (罪证清单) -->
+            <EvidenceList v-if="evidenceItems.length > 0" :items="evidenceItems" />
+            
+            <!-- Full AI Text (for debugging/fallback) -->
+            <details class="full-analysis-toggle">
+              <summary>查看完整AI回答</summary>
+              <pre class="ai-text">{{ aiAnalysis }}</pre>
+            </details>
           </div>
           
           <div v-else-if="aiError" class="ai-warning">
@@ -160,6 +180,10 @@
 
 <script setup lang="ts">
 import RadarChart from '../components/RadarChart.vue'
+import PersonalityTitle from '../components/PersonalityTitle.vue'
+import VictimProfile from '../components/VictimProfile.vue'
+import RoastAnalysis from '../components/RoastAnalysis.vue'
+import EvidenceList, { type EvidenceItem } from '../components/EvidenceList.vue'
 import type { SteamApiResponse } from '../types/steam'
 
 interface PromptInfo {
@@ -184,6 +208,9 @@ const aiError = ref('')
 const availablePrompts = ref<PromptInfo[]>([])
 const selectedPromptId = ref('default')
 const radarDimensions = ref<RadarDimension[]>([])
+const personalityTitle = ref<string>('')
+const roastContent = ref<string>('')
+const evidenceItems = ref<EvidenceItem[]>([])
 
 // Computed: Sorted games by playtime
 const sortedGames = computed(() => {
@@ -197,49 +224,130 @@ const maxPlaytime = computed(() => {
   return sortedGames.value[0]?.playtimeHours || 1
 })
 
-// Parse radar dimensions from AI analysis
-const parseRadarDimensions = (text: string): RadarDimension[] => {
+// Parse AI analysis to extract structured data
+const parseAIAnalysis = (text: string) => {
+  // 1. Parse personality title (游戏人格称号)
+  // Look for pattern: @游戏人格:xxxx
+  const titlePattern = /@游戏人格:([^\n]+)/
+  const titleMatch = text.match(titlePattern)
+  personalityTitle.value = titleMatch?.[1]?.trim() || '神秘玩家'
+  
+  // 2. Parse radar dimensions (六边形评分维度)
   const dimensions: RadarDimension[] = []
-  
-  // Match the format: *   维度名称:数字 (说明文字)
-  // Example: *   时间管理大师指数:1.8 (毕竟还是有时间玩这么多游戏)
   const pattern = /\*\s*([^:：\n]+)[：:]\s*(\d+(?:\.\d+)?)\s*(?:\(([^)]+)\))?/g
-  
   const matches = text.matchAll(pattern)
+  
   for (const match of matches) {
     if (match[1] && match[2]) {
       const name = match[1].trim()
       const value = parseFloat(match[2])
       const description = match[3] ? match[3].trim() : ''
       
-      // Filter out invalid entries (0-5 scale)
       if (value >= 0 && value <= 5 && name.length > 1 && name.length < 30) {
-        dimensions.push({ 
-          name, 
-          value,
-          description
-        })
+        dimensions.push({ name, value, description })
       }
     }
   }
   
-  console.log('Parsed dimensions:', dimensions)
+  radarDimensions.value = dimensions.length >= 6 ? dimensions.slice(0, 6) : [
+    { name: '动作指数', value: 3.5, description: '快节奏游戏偏好' },
+    { name: '策略思维', value: 3.0, description: '战术规划能力' },
+    { name: '竞技欲望', value: 4.0, description: '对抗与竞争' },
+    { name: '合作精神', value: 3.5, description: '团队配合意识' },
+    { name: '挑战热情', value: 4.0, description: '追求高难度' },
+    { name: '创造力', value: 3.0, description: '沙盒建造倾向' }
+  ]
   
-  // If we couldn't find exactly 6 dimensions, create default ones
-  if (dimensions.length < 6) {
-    console.warn('Could not parse 6 dimensions from AI response, using defaults')
-    return [
-      { name: '动作指数', value: 3.5, description: '快节奏游戏偏好' },
-      { name: '策略思维', value: 3.0, description: '战术规划能力' },
-      { name: '竞技欲望', value: 4.0, description: '对抗与竞争' },
-      { name: '合作精神', value: 3.5, description: '团队配合意识' },
-      { name: '挑战热情', value: 4.0, description: '追求高难度' },
-      { name: '创造力', value: 3.0, description: '沙盒建造倾向' }
-    ]
+  // 3. Parse evidence list with comments (罪证清单)
+  // First, try to find the evidence section
+  const evidenceSection = text.match(/【罪证清单】([\s\S]*?)(?=【|$)/)?.[1] || 
+                          text.match(/罪证清单[：:]([\s\S]*?)(?=\n\n|$)/)?.[1] || ''
+  
+  const items: EvidenceItem[] = []
+  
+  // Pattern to match: 1. Game Name - XXX 小时
+  // And optionally capture the comment on the next line or after
+  const lines = evidenceSection.split('\n')
+  let currentGame: EvidenceItem | null = null
+  
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    
+    // Check if it's a game entry (starts with number)
+    const gameMatch = trimmed.match(/^(\d+)\.\s*([^\n-]+?)\s*[-–—]\s*(?:沉迷了\s*)?(\d+(?:\.\d+)?)\s*(?:小时|h)/)
+    
+    if (gameMatch) {
+      // Save previous game if exists
+      if (currentGame) {
+        items.push(currentGame)
+      }
+      
+      // Create new game entry
+      currentGame = {
+        game: gameMatch[2]?.trim() || '',
+        hours: gameMatch[3] || '0',
+        comment: ''
+      }
+    } else if (currentGame && trimmed.length > 10) {
+      // This might be a comment for the current game
+      currentGame.comment = trimmed
+    }
   }
   
-  // Limit to 6 dimensions for hexagon
-  return dimensions.slice(0, 6)
+  // Don't forget the last game
+  if (currentGame) {
+    items.push(currentGame)
+  }
+  
+  evidenceItems.value = items
+  
+  // 4. Parse roast content (罪证分析 - the main commentary)
+  // Extract charges with pattern: @罪名:xxx
+  const charges: { charge: string; comment: string }[] = []
+  const chargePattern = /@罪名:([^\n]+)\n([^\n@]+(?:\n(?!@)[^\n]+)*)/g
+  const chargeMatches = text.matchAll(chargePattern)
+  
+  for (const match of chargeMatches) {
+    if (match[1] && match[2]) {
+      charges.push({
+        charge: match[1].trim(),
+        comment: match[2].trim()
+      })
+    }
+  }
+  
+  // If we found charges, format them for display
+  if (charges.length > 0) {
+    roastContent.value = charges.map(c => `@罪名:${c.charge}\n${c.comment}`).join('\n\n')
+  } else {
+    // Fallback: Extract content between title and evidence list
+    let content = text
+    
+    // Remove personality title section  
+    content = content.replace(/@游戏人格:[^\n]+[\n\r]*/i, '')
+    
+    // Remove radar dimensions section
+    content = content.replace(/\*\s*[^:：\n]+[：:]\s*\d+(?:\.\d+)?\s*(?:\([^)]+\))?\n/g, '')
+    
+    // Remove 罪证清单 and everything after it
+    content = content.replace(/【?罪证清单】?[\s\S]*$/, '')
+    
+    // Remove 受害者档案 header but keep content
+    content = content.replace(/【?受害者档案】?[\n\r]*/i, '')
+    
+    // Clean up extra whitespace
+    content = content.trim()
+    
+    roastContent.value = content
+  }
+  
+  console.log('Parsed AI data:', {
+    personalityTitle: personalityTitle.value,
+    radarDimensions: radarDimensions.value,
+    evidenceItems: evidenceItems.value,
+    roastContent: roastContent.value
+  })
 }
 
 // Fetch available prompts on component mount
@@ -310,11 +418,9 @@ const fetchAIAnalysis = async (data: SteamApiResponse) => {
     
     if (response.success && response.analysis) {
       aiAnalysis.value = response.analysis
-      radarDimensions.value = parseRadarDimensions(response.analysis)
+      parseAIAnalysis(response.analysis)
       console.log('=== AI Analysis Retrieved ===')
       console.log(response.analysis)
-      console.log('=== Radar Dimensions ===')
-      console.log(radarDimensions.value)
     } else {
       aiError.value = 'AI analysis returned empty result'
     }
@@ -938,18 +1044,44 @@ body {
   border-radius: 12px;
 }
 
+.full-analysis-toggle {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.full-analysis-toggle summary {
+  cursor: pointer;
+  padding: 0.5rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  user-select: none;
+  transition: color 0.3s ease;
+}
+
+.full-analysis-toggle summary:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.full-analysis-toggle[open] summary {
+  margin-bottom: 1rem;
+  color: #667eea;
+}
+
 .ai-text {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-size: 1rem;
+  font-size: 0.9rem;
   line-height: 1.8;
   color: #cbd5e0;
   white-space: pre-wrap;
   word-wrap: break-word;
   margin: 0;
-  padding: 1.5rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 12px;
-  border-left: 4px solid rgba(124, 58, 237, 0.6);
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  border-left: 3px solid rgba(124, 58, 237, 0.4);
 }
 
 .ai-warning,
