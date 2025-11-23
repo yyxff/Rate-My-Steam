@@ -62,7 +62,7 @@ defineProps<Props>()
 
 .evidence-card {
   background: rgba(20, 20, 40, 0.6);
-  backdrop-filter: blur(10px);
+  /* 移除 backdrop-filter 以减少 GPU 消耗 */
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 2rem;

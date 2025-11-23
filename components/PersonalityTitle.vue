@@ -37,7 +37,7 @@ defineProps<Props>()
 
 .title-card {
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
-  backdrop-filter: blur(10px);
+  /* 移除 backdrop-filter 以减少 GPU 消耗 */
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   padding: 2rem;

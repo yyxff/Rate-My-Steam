@@ -61,7 +61,7 @@ defineProps<Props>()
 
 .profile-card {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05));
-  backdrop-filter: blur(10px);
+  /* 移除 backdrop-filter 以减少 GPU 消耗 */
   border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: 12px;
   padding: 1rem 1.5rem;

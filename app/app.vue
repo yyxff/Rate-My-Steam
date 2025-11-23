@@ -466,14 +466,16 @@ body {
     repeating-linear-gradient(60deg, transparent, transparent 70px, rgba(100, 150, 255, 0.06) 71px, transparent 72px),
     repeating-linear-gradient(120deg, transparent, transparent 70px, rgba(100, 150, 255, 0.06) 71px, transparent 72px);
   background-size: 100% 100%;
-  animation: hexMove 40s linear infinite;
-  opacity: 0.8;
+  /* 移除动画以减少 GPU 消耗 */
+  opacity: 0.4;
 }
 
+/* 移除背景网格动画
 @keyframes hexMove {
   0% { background-position: 0 0, 0 0, 0 0; }
   100% { background-position: 0 140px, 0 140px, 0 140px; }
 }
+*/
 
 .glow-orbs {
   position: absolute;
@@ -484,9 +486,11 @@ body {
 .orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.3;
-  animation: float 8s ease-in-out infinite;
+  /* 减小模糊效果从 80px 到 40px 以降低 GPU 消耗 */
+  filter: blur(40px);
+  opacity: 0.2;
+  /* 移除动画以减少 GPU 消耗 */
+  /* animation: float 8s ease-in-out infinite; */
 }
 
 .orb-1 {
@@ -495,7 +499,6 @@ body {
   background: radial-gradient(circle, #667eea 0%, transparent 70%);
   top: -200px;
   left: -200px;
-  animation-delay: 0s;
 }
 
 .orb-2 {
@@ -504,7 +507,6 @@ body {
   background: radial-gradient(circle, #764ba2 0%, transparent 70%);
   bottom: -250px;
   right: -250px;
-  animation-delay: 2s;
 }
 
 .orb-3 {
@@ -513,13 +515,14 @@ body {
   background: radial-gradient(circle, #f093fb 0%, transparent 70%);
   top: 50%;
   right: 10%;
-  animation-delay: 4s;
 }
 
+/* 移除浮动动画以减少 GPU 消耗
 @keyframes float {
   0%, 100% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(30px, -30px) scale(1.1); }
 }
+*/
 
 .main-content {
   position: relative;
@@ -590,7 +593,7 @@ body {
   border-radius: 12px;
   color: #e0e6ff;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  /* 移除 backdrop-filter 以减少 GPU 消耗 */
   box-sizing: border-box;
 }
 
@@ -630,7 +633,7 @@ body {
   color: #e0e6ff;
   cursor: pointer;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  /* 移除 backdrop-filter 以减少 GPU 消耗 */
 }
 
 .prompt-select:hover {
@@ -734,7 +737,7 @@ body {
   padding: 1.5rem 1rem;
   text-align: center;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  /* 移除 backdrop-filter 以减少 GPU 消耗 */
 }
 
 .feature-card:hover {
@@ -865,7 +868,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 1.5rem;
-  backdrop-filter: blur(10px);
+  /* 移除 backdrop-filter 以减少 GPU 消耗 */
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
