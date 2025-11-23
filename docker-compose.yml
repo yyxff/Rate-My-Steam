@@ -5,7 +5,7 @@ services:
     image: rate-my-steam:latest
     container_name: rate-my-steam-app
     environment:
-      - NUXT_GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - STEAM_API_KEY=${STEAM_API_KEY}
     restart: unless-stopped
     networks:
