@@ -77,7 +77,8 @@
           />
         </div>
 
-        <!-- Prompt Selection -->
+        <!-- Prompt Selection - Hidden, only using fun analysis -->
+        <!--
         <div class="prompt-selector" v-if="availablePrompts.length > 0">
           <label for="prompt-select">Analysis Style:</label>
           <select 
@@ -94,6 +95,7 @@
             </option>
           </select>
         </div>
+        -->
 
         <button 
           class="analyze-btn"
@@ -134,7 +136,7 @@
 
       <!-- AI Analysis (Right Column Only) -->
       <div v-if="steamData" class="ai-section">
-        <div class="ai-card">
+        <div class="ai-card" ref="analysisContent">
           <div class="ai-header">
             <h2>🤖 AI Analysis</h2>
           </div>
@@ -156,16 +158,13 @@
               :totalHours="Math.floor(steamData.stats.totalPlaytime / 60)"
             />
             
-            <!-- Roast Analysis (罪证分析) -->
-            <RoastAnalysis v-if="roastContent" :content="roastContent" />
-            
             <!-- Radar Chart -->
             <div v-if="radarDimensions.length === 6" class="radar-section">
               <RadarChart :dimensions="radarDimensions" :size="500" />
             </div>
             
-            <!-- Evidence List (罪证清单) -->
-            <EvidenceList v-if="evidenceItems.length > 0" :items="evidenceItems" />
+            <!-- Roast Analysis (罪证分析) -->
+            <RoastAnalysis v-if="roastContent" :content="roastContent" />
             
             <!-- Full AI Text (for debugging/fallback) -->
             <details class="full-analysis-toggle">
@@ -184,15 +183,57 @@
         </div>
       </div>
     </main>
+    
+    <!-- Right Download Panel -->
+    <aside v-if="aiAnalysis && !aiLoading" class="download-panel">
+      <div class="download-card">
+        <div class="download-options">
+          <button 
+            class="download-btn" 
+            @click="downloadAsImage"
+            :disabled="isGeneratingImage"
+          >
+            <span v-if="!isGeneratingImage">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; vertical-align: middle;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              下载为图片
+            </span>
+            <span v-else class="generating-text">
+              生成中...
+            </span>
+          </button>
+        </div>
+      </div>
+    </aside>
+    
+    <!-- Hidden Export Template -->
+    <div style="position: fixed; left: -9999px; top: 0;">
+      <ExportImageTemplate
+        v-if="aiAnalysis && steamData"
+        ref="exportTemplateRef"
+        :playerName="steamData.player.name"
+        :playerAvatar="steamData.player.avatar"
+        :totalGames="steamData.stats.totalGames"
+        :totalHours="Math.floor(steamData.stats.totalPlaytime / 60)"
+        :personalityTitle="personalityTitle"
+        :radarDimensions="radarDimensions"
+        :roastCharges="roastCharges"
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import html2canvas from 'html2canvas'
 import RadarChart from '../components/RadarChart.vue'
 import PersonalityTitle from '../components/PersonalityTitle.vue'
 import VictimProfile from '../components/VictimProfile.vue'
 import RoastAnalysis from '../components/RoastAnalysis.vue'
-import EvidenceList, { type EvidenceItem } from '../components/EvidenceList.vue'
+import ExportRoastAnalysis from '../components/ExportRoastAnalysis.vue'
+import ExportImageTemplate from '../components/ExportImageTemplate.vue'
 import type { SteamApiResponse } from '../types/steam'
 
 interface PromptInfo {
@@ -214,12 +255,15 @@ const steamData = ref<SteamApiResponse | null>(null)
 const aiAnalysis = ref<string | null>(null)
 const aiLoading = ref(false)
 const aiError = ref('')
+const analysisContent = ref<HTMLElement | null>(null)
+const isGeneratingImage = ref(false)
 const availablePrompts = ref<PromptInfo[]>([])
-const selectedPromptId = ref('default')
+const selectedPromptId = ref('fun') // Default to fun analysis
 const radarDimensions = ref<RadarDimension[]>([])
 const personalityTitle = ref<string>('')
 const roastContent = ref<string>('')
-const evidenceItems = ref<EvidenceItem[]>([])
+const exportTemplateRef = ref<{ rootRef: HTMLElement } | null>(null)
+const roastCharges = ref<{ charge: string; comment: string }[]>([])
 
 // Computed: Sorted games by playtime
 const sortedGames = computed(() => {
@@ -235,6 +279,9 @@ const maxPlaytime = computed(() => {
 
 // Parse AI analysis to extract structured data
 const parseAIAnalysis = (text: string) => {
+  console.log('=== Parsing AI Analysis ===')
+  console.log('Full text (first 500 chars):', text.substring(0, 500))
+  
   // 1. Parse personality title (游戏人格称号)
   // Look for pattern: @游戏人格:xxxx
   const titlePattern = /@游戏人格:([^\n]+)/
@@ -267,51 +314,7 @@ const parseAIAnalysis = (text: string) => {
     { name: '创造力', value: 3.0, description: '沙盒建造倾向' }
   ]
   
-  // 3. Parse evidence list with comments (罪证清单)
-  // First, try to find the evidence section
-  const evidenceSection = text.match(/【罪证清单】([\s\S]*?)(?=【|$)/)?.[1] || 
-                          text.match(/罪证清单[：:]([\s\S]*?)(?=\n\n|$)/)?.[1] || ''
-  
-  const items: EvidenceItem[] = []
-  
-  // Pattern to match: 1. Game Name - XXX 小时
-  // And optionally capture the comment on the next line or after
-  const lines = evidenceSection.split('\n')
-  let currentGame: EvidenceItem | null = null
-  
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (!trimmed) continue
-    
-    // Check if it's a game entry (starts with number)
-    const gameMatch = trimmed.match(/^(\d+)\.\s*([^\n-]+?)\s*[-–—]\s*(?:沉迷了\s*)?(\d+(?:\.\d+)?)\s*(?:小时|h)/)
-    
-    if (gameMatch) {
-      // Save previous game if exists
-      if (currentGame) {
-        items.push(currentGame)
-      }
-      
-      // Create new game entry
-      currentGame = {
-        game: gameMatch[2]?.trim() || '',
-        hours: gameMatch[3] || '0',
-        comment: ''
-      }
-    } else if (currentGame && trimmed.length > 10) {
-      // This might be a comment for the current game
-      currentGame.comment = trimmed
-    }
-  }
-  
-  // Don't forget the last game
-  if (currentGame) {
-    items.push(currentGame)
-  }
-  
-  evidenceItems.value = items
-  
-  // 4. Parse roast content (罪证分析 - the main commentary)
+  // 3. Parse roast content (罪名清单 - the main commentary)
   // Extract charges with pattern: @罪名:xxx\n(content on next line)
   const charges: { charge: string; comment: string }[] = []
   
@@ -331,6 +334,7 @@ const parseAIAnalysis = (text: string) => {
   // If we found charges, format them for display
   if (charges.length > 0) {
     roastContent.value = charges.map(c => `@罪名:${c.charge}\n${c.comment}`).join('\n\n')
+    roastCharges.value = charges // Save for export
   } else {
     // Fallback: Extract content between title and evidence list
     let content = text
@@ -356,7 +360,7 @@ const parseAIAnalysis = (text: string) => {
   console.log('Parsed AI data:', {
     personalityTitle: personalityTitle.value,
     radarDimensions: radarDimensions.value,
-    evidenceItems: evidenceItems.value,
+    roastCharges: roastCharges.value,
     roastContent: roastContent.value
   })
 }
@@ -443,6 +447,83 @@ const fetchAIAnalysis = async (data: SteamApiResponse) => {
   }
 }
 
+// Download analysis as image
+const downloadAsImage = async () => {
+  console.log('downloadAsImage called')
+  console.log('exportTemplateRef.value:', exportTemplateRef.value)
+  console.log('steamData.value:', steamData.value)
+  console.log('roastCharges.value:', roastCharges.value)
+  console.log('roastCharges.value.length:', roastCharges.value.length)
+  
+  if (!exportTemplateRef.value || !steamData.value) {
+    console.log('Early return: missing ref or steamData')
+    return
+  }
+  
+  isGeneratingImage.value = true
+  
+  try {
+    // Clear any text selection before capturing
+    if (window.getSelection) {
+      window.getSelection()?.removeAllRanges()
+    }
+    
+    const exportComponent = exportTemplateRef.value
+    if (!exportComponent || !exportComponent.rootRef) {
+      throw new Error('Export element not found')
+    }
+    
+    const exportElement = exportComponent.rootRef
+    
+    // Temporarily move to visible area for better rendering
+    const originalLeft = exportElement.style.left
+    exportElement.style.left = '0'
+    exportElement.style.top = '0'
+    
+    // Wait a bit to ensure the export template is fully rendered
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    console.log('Generating canvas...')
+    // Use html2canvas to capture the export template
+    const canvas = await html2canvas(exportElement, {
+      backgroundColor: '#0a0e27',
+      scale: 2, // Higher quality
+      logging: true,
+      useCORS: true,
+      allowTaint: true,
+      width: exportElement.scrollWidth,
+      height: exportElement.scrollHeight
+    })
+    
+    // Move back to hidden position
+    exportElement.style.left = originalLeft
+    
+    console.log('Canvas generated, creating download...')
+    // Convert canvas to blob
+    canvas.toBlob((blob) => {
+      if (!blob) return
+      
+      // Create download link
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      const playerName = steamData.value?.player.name || 'player'
+      const timestamp = new Date().getTime()
+      link.download = `steam-evidence-${playerName}-${timestamp}.png`
+      link.href = url
+      link.click()
+      
+      // Clean up
+      URL.revokeObjectURL(url)
+      console.log('Download completed')
+    }, 'image/png')
+  } catch (error) {
+    console.error('Error generating image:', error)
+    alert('生成图片失败，请重试')
+  } finally {
+    isGeneratingImage.value = false
+  }
+}
+
 </script>
 
 <style>
@@ -450,6 +531,102 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
+}
+
+/* 导出模板样式 - 修复 html2canvas 渲染问题 */
+.export-template-wrapper {
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+  padding: 2rem;
+  width: 1400px;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* 移除 background-clip: text 效果，避免 html2canvas 渲染问题 */
+/* 但要允许正常的 color 属性工作 */
+.export-template-wrapper .title-text,
+.export-template-wrapper .header-title,
+.export-template-wrapper .player-name,
+.export-template-wrapper .highlight-number {
+  -webkit-background-clip: border-box !important;
+  background-clip: border-box !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+/* 强制禁用所有动画和过渡效果，确保完全渲染 */
+.export-template-wrapper,
+.export-template-wrapper * {
+  animation: none !important;
+  transition: none !important;
+  opacity: 1 !important;
+}
+
+/* 覆盖渐变文字效果，使用纯色 - 匹配页面实际颜色的鲜艳度 */
+/* PersonalityTitle 游戏人格标题 - 使用渐变中间色 */
+.export-template-wrapper .title-text {
+  background: none !important;
+  color: #7c3aed !important;
+  font-weight: 700 !important;
+}
+
+/* VictimProfile 受害者档案 - 使用鲜艳的红色 */
+.export-template-wrapper .header-title {
+  background: none !important;
+  color: #f87171 !important;
+  font-weight: 700 !important;
+}
+
+.export-template-wrapper .player-name {
+  background: none !important;
+  color: #fbbf24 !important;
+  font-weight: 600 !important;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.3) !important;
+}
+
+.export-template-wrapper .highlight-number {
+  background: none !important;
+  color: #f87171 !important;
+  font-weight: 700 !important;
+  font-size: 1.5rem !important;
+}
+
+/* RadarChart 雷达图 - 维度标签和描述 */
+.export-template-wrapper .dimension-label {
+  fill: #fbbf24 !important;
+  font-weight: 700 !important;
+}
+
+.export-template-wrapper .dimension-desc {
+  color: #f87171 !important;
+  font-weight: 600 !important;
+  opacity: 0.95 !important;
+  text-shadow: 0 0 6px rgba(248, 113, 113, 0.4) !important;
+}
+
+/* 强制覆盖foreignObject中的div样式 */
+.export-template-wrapper foreignObject {
+  color: #f87171 !important;
+}
+
+.export-template-wrapper foreignObject .dimension-desc {
+  color: #f87171 !important;
+}
+
+.export-template-wrapper foreignObject div {
+  color: #f87171 !important;
+}
+
+/* 更强的选择器，覆盖所有可能的样式 */
+.export-template-wrapper svg foreignObject div[class*="dimension-desc"] {
+  color: #f87171 !important;
+  font-weight: 600 !important;
+}
+
+/* 直接针对 SVG 内的 foreignObject 中的所有文本 */
+.export-template-wrapper svg foreignObject * {
+  color: #f87171 !important;
 }
 </style>
 
@@ -1189,6 +1366,139 @@ body {
   
   .prompt-selector label {
     margin-bottom: 0.5rem;
+  }
+}
+
+/* Download Panel Styles */
+.download-panel {
+  position: fixed;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  animation: slideInRight 0.5s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+.download-card {
+  background: rgba(20, 20, 40, 0.8);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 16px;
+  padding: 1.5rem;
+  min-width: 280px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.download-card:hover {
+  border-color: rgba(102, 126, 234, 0.5);
+  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);
+}
+
+.panel-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e0e6ff;
+  margin: 0 0 1.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.panel-icon {
+  font-size: 1.3rem;
+}
+
+.download-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.download-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.9rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  width: 100%;
+}
+
+.download-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.download-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.download-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.generating-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.generating-text::after {
+  content: '...';
+  animation: dots 1.5s steps(3, end) infinite;
+}
+
+@keyframes dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
+}
+
+.download-tips {
+  padding: 0.8rem;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.tip-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #a0aec0;
+  line-height: 1.4;
+}
+
+@media (max-width: 1400px) {
+  .download-panel {
+    position: static;
+    transform: none;
+    margin: 2rem auto;
+    max-width: 400px;
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 }
 
