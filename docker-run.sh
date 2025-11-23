@@ -36,7 +36,8 @@ if [ -n "$GEMINI_API_KEY" ]; then
     docker run -d \
         --name $CONTAINER_NAME \
         -p $PORT:3000 \
-        -e NUXT_GEMINI_API_KEY=$GEMINI_API_KEY \
+        -e GEMINI_API_KEY=$GEMINI_API_KEY \
+        -e STEAM_API_KEY=$STEAM_API_KEY \
         --restart unless-stopped \
         $IMAGE_NAME:latest
 else
