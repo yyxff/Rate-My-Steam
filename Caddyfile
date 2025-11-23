@@ -1,0 +1,22 @@
+# 生产环境 HTTPS 配置
+# 使用前请将 your-domain.com 替换为你的真实域名
+# Caddy 会自动从 Let's Encrypt 获取免费 SSL 证书并自动续期
+
+ratemysteam.colab.duke.edu {
+    # 反向代理到 Nuxt 应用
+    reverse_proxy app:3000
+    
+    # 启用 Gzip 压缩
+    encode gzip
+    
+    # 访问日志（可选）
+    # log {
+    #     output file /var/log/caddy/access.log
+    #     format json
+    # }
+}
+
+# www 重定向到主域名（可选）
+# www.your-domain.com {
+#     redir https://your-domain.com{uri} permanent
+# }
