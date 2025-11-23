@@ -37,6 +37,9 @@ const props = defineProps<Props>()
 // Parse charges from content
 const parsedCharges = computed(() => {
   const charges: { charge: string; comment: string }[] = []
+  
+  // Pattern: @罪名:charge_name followed by newline and comment content
+  // Matches: @罪名:xxx\n(content until next @罪名: or end)
   const pattern = /@罪名:([^\n]+)\n([^\n@]+(?:\n(?!@)[^\n]+)*)/g
   const matches = props.content.matchAll(pattern)
   

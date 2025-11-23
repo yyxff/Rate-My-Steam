@@ -303,8 +303,10 @@ const parseAIAnalysis = (text: string) => {
   evidenceItems.value = items
   
   // 4. Parse roast content (罪证分析 - the main commentary)
-  // Extract charges with pattern: @罪名:xxx
+  // Extract charges with pattern: @罪名:xxx\n(content on next line)
   const charges: { charge: string; comment: string }[] = []
+  
+  // Pattern: @罪名:charge_name followed by newline and comment content
   const chargePattern = /@罪名:([^\n]+)\n([^\n@]+(?:\n(?!@)[^\n]+)*)/g
   const chargeMatches = text.matchAll(chargePattern)
   

@@ -5,16 +5,19 @@ A web application that analyzes Steam players' game libraries using AI.
 ## Features
 
 - 🎮 Fetch Steam player game library data
-- 🧠 AI-driven player personality analysis
-- 🎯 Gaming style analysis
-- 📊 Deep data insights
+- 🧠 AI-driven player personality analysis (Gemini)
+-  Gaming style analysis
+- 📊 Deep data insights with radar chart visualization
+- 💬 Humorous roast analysis of gaming habits
 - 🔗 Shareable links
 
 ## Tech Stack
 
 - **Frontend**: Nuxt 3 + Vue 3 + TypeScript
 - **Backend**: Nuxt Server API
-- **API**: Steam Web API
+- **APIs**: 
+  - Steam Web API (game data)
+  - Google Gemini AI (text analysis)
 
 ## Getting Started
 
@@ -24,14 +27,21 @@ A web application that analyzes Steam players' game libraries using AI.
 npm install
 ```
 
-### 2. Configure Steam API Key
+### 2. Configure API Keys
 
-1. Visit [Steam Web API Key](https://steamcommunity.com/dev/apikey) to get your API Key
-2. Copy `.env.example` to `.env`
-3. Add your Steam API Key in the `.env` file:
+1. **Steam API Key**
+   - Visit [Steam Web API Key](https://steamcommunity.com/dev/apikey)
+   - Get your API Key
+
+2. **Gemini API Key** (for AI text analysis)
+   - Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
+   - Create an API Key
+
+3. Copy `.env.example` to `.env` and add your keys:
 
 ```env
 STEAM_API_KEY=your_steam_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ### 3. Start Development Server
