@@ -410,7 +410,12 @@ const analyzProfile = async () => {
     
   } catch (error: any) {
     console.error('Error fetching Steam data:', error)
-    errorMessage.value = error?.data?.message || 'Failed to fetch Steam data. Please check the Steam ID and try again.'
+    if (error?.status === 429 || error?.statusCode === 429) {
+      const message = error?.data?.statusMessage || error?.statusMessage || '请求频率过高，请稍后重试'
+      errorMessage.value = message
+    } else {
+      errorMessage.value = error?.data?.message || 'Failed to fetch Steam data. Please check the Steam ID and try again.'
+    }
   } finally {
     loading.value = false
   }
@@ -441,7 +446,12 @@ const fetchAIAnalysis = async (data: SteamApiResponse) => {
     }
   } catch (error: any) {
     console.error('Error fetching AI analysis:', error)
-    aiError.value = error?.data?.message || 'Failed to get AI analysis. Please check if GEMINI_API_KEY is configured.'
+    if (error?.status === 429 || error?.statusCode === 429) {
+      const message = error?.data?.statusMessage || error?.statusMessage || '请求频率过高，请稍后重试'
+      aiError.value = message
+    } else {
+      aiError.value = error?.data?.message || 'Failed to get AI analysis. Please check if GEMINI_API_KEY is configured.'
+    }
   } finally {
     aiLoading.value = false
   }
