@@ -104,21 +104,33 @@
         </div>
         -->
 
-        <button 
-          class="analyze-btn"
-          @click="analyzProfile"
-          :disabled="loading || !steamId"
-        >
-          <span class="btn-content">
-            <span v-if="!loading">Analyze Profile</span>
-            <span v-else class="loading-text">
-              <span class="dot">.</span>
-              <span class="dot">.</span>
-              <span class="dot">.</span>
+        <div class="button-group">
+          <button 
+            class="analyze-btn"
+            @click="analyzProfile"
+            :disabled="loading || !steamId"
+          >
+            <span class="btn-content">
+              <span v-if="!loading">Analyze Profile</span>
+              <span v-else class="loading-text">
+                <span class="dot">.</span>
+                <span class="dot">.</span>
+                <span class="dot">.</span>
+              </span>
             </span>
-          </span>
-          <div class="btn-glow"></div>
-        </button>
+            <div class="btn-glow"></div>
+          </button>
+
+          <div class="language-select-wrapper">
+            <select v-model="language" class="language-select">
+              <option value="en">English</option>
+              <option value="zh">简体中文</option>
+            </select>
+            <svg class="select-arrow" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 8 10 12 14 8"></polyline>
+            </svg>
+          </div>
+        </div>
       </div>
 
       <div class="features">
@@ -296,6 +308,7 @@ const roastContent = ref<string>('')
 const exportTemplateRef = ref<{ rootRef: HTMLElement } | null>(null)
 const roastCharges = ref<{ charge: string; comment: string }[]>([])
 const showGuideModal = ref(false)
+const language = ref<'en' | 'zh'>('en')
 
 // Computed: Sorted games by playtime
 const sortedGames = computed(() => {
@@ -902,6 +915,85 @@ body {
   padding: 0.5rem;
 }
 
+.button-group {
+  display: flex;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.button-group .analyze-btn {
+  flex: 1;
+}
+
+.language-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.language-select {
+  padding: 1.2rem 1.2rem;
+  font-size: 0.95rem;
+  background: transparent;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-radius: 12px;
+  color: #cbd5e0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 110px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  font-family: Arial, sans-serif;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  box-shadow: none;
+  -webkit-box-shadow: none;
+  padding-right: 2.5rem;
+  width: 100%;
+  line-height: 1.5;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 1rem;
+  pointer-events: none;
+  color: #cbd5e0;
+  transition: all 0.3s ease;
+}
+
+.language-select:hover {
+  border-color: rgba(102, 126, 234, 0.5);
+  color: #e0e6ff;
+}
+
+.language-select:hover ~ .select-arrow {
+  color: #e0e6ff;
+}
+
+.language-select:focus ~ .select-arrow {
+  color: #667eea;
+}
+
+.language-select:focus {
+  outline: none;
+  border-color: #667eea;
+  background: transparent;
+}
+
+.language-select:focus {
+  outline: none;
+  border-color: #667eea;
+  background: transparent;
+}
+
+.language-select option {
+  background: #0a0e27;
+  color: #e0e6ff;
+  padding: 0.5rem;
+}
+
 .analyze-btn {
   width: 100%;
   padding: 1.2rem;
@@ -915,6 +1007,7 @@ body {
   position: relative;
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.3s ease;
+  line-height: 1.5;
 }
 
 .analyze-btn:not(:disabled):hover {
