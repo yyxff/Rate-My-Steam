@@ -3,7 +3,7 @@
     <div class="title-card">
       <div class="icon">🎭</div>
       <div class="title-content">
-        <h3 class="label">游戏人格</h3>
+        <h3 class="label">{{ $t('export.gamingPersonality') }}</h3>
         <p class="title-text">{{ title }}</p>
       </div>
     </div>

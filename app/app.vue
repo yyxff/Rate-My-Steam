@@ -61,16 +61,16 @@
       <div class="header">
         <h1 class="title">
           <span class="title-icon">🎮</span>
-          RATE MY STEAM
+          {{ $t('hero.title') }}
         </h1>
-        <p class="subtitle">Discover your gaming personality through AI</p>
+        <p class="subtitle">{{ $t('hero.subtitle') }}</p>
       </div>
 
       <div class="input-section">
         <!-- Steam ID Guide Link -->
         <div class="steam-id-guide">
           <span @click="showGuideModal = true" class="guide-link">
-            How to find your Steam ID?
+            {{ $t('input.guideLink') }}
           </span>
         </div>
 
@@ -79,7 +79,7 @@
             v-model="steamId"
             type="text"
             class="steam-input"
-            placeholder="Enter Steam ID or Profile URL"
+            :placeholder="$t('input.placeholder')"
             @keyup.enter="analyzProfile"
           />
         </div>
@@ -111,7 +111,7 @@
             :disabled="loading || !steamId"
           >
             <span class="btn-content">
-              <span v-if="!loading">Analyze Profile</span>
+              <span v-if="!loading">{{ $t('input.analyzeBtn') }}</span>
               <span v-else class="loading-text">
                 <span class="dot">.</span>
                 <span class="dot">.</span>
@@ -122,7 +122,11 @@
           </button>
 
           <div class="language-select-wrapper">
-            <select v-model="language" class="language-select">
+            <select 
+              :value="language" 
+              @change="(e: any) => changeLanguage(e.target.value)"
+              class="language-select"
+            >
               <option value="en">English</option>
               <option value="zh">简体中文</option>
             </select>
@@ -136,15 +140,15 @@
       <div class="features">
         <div class="feature-card">
           <div class="feature-icon">🎯</div>
-          <div class="feature-text">Gaming Style</div>
+          <div class="feature-text">{{ $t('features.gamingStyle') }}</div>
         </div>
         <div class="feature-card">
           <div class="feature-icon">🧠</div>
-          <div class="feature-text">Personality</div>
+          <div class="feature-text">{{ $t('features.personality') }}</div>
         </div>
         <div class="feature-card">
           <div class="feature-icon">📊</div>
-          <div class="feature-text">Deep Analysis</div>
+          <div class="feature-text">{{ $t('features.deepAnalysis') }}</div>
         </div>
       </div>
 
@@ -157,12 +161,12 @@
       <div v-if="steamData" class="ai-section">
         <div class="ai-card" ref="analysisContent">
           <div class="ai-header">
-            <h2>🤖 AI Analysis</h2>
+            <h2>🤖 {{ $t('analysis.aiAnalysis') }}</h2>
           </div>
           
           <div v-if="aiLoading" class="ai-loading">
             <div class="spinner"></div>
-            <p>AI is analyzing your gaming profile...</p>
+            <p>{{ $t('analysis.analyzing') }}</p>
           </div>
           
           <div v-else-if="aiAnalysis" class="ai-content">
@@ -218,10 +222,10 @@
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              下载为图片
+              {{ $t('export.downloadButton') }}
             </span>
             <span v-else class="generating-text">
-              生成中...
+              {{ $t('export.downloading') }}
             </span>
           </button>
         </div>
@@ -279,6 +283,9 @@ import ExportRoastAnalysis from '../components/ExportRoastAnalysis.vue'
 import ExportImageTemplate from '../components/ExportImageTemplate.vue'
 import type { SteamApiResponse } from '../types/steam'
 
+// i18n 翻译
+const { locale, setLocale } = useI18n()
+
 interface PromptInfo {
   id: string
   name: string
@@ -310,6 +317,12 @@ const roastCharges = ref<{ charge: string; comment: string }[]>([])
 const showGuideModal = ref(false)
 const language = ref<'en' | 'zh'>('en')
 
+// 处理语言切换 - 同时更新 i18n locale 和 language ref
+const changeLanguage = (newLocale: string) => {
+  setLocale(newLocale as 'en' | 'zh')
+  language.value = newLocale as 'en' | 'zh'
+}
+
 // Computed: Sorted games by playtime
 const sortedGames = computed(() => {
   if (!steamData.value) return []
@@ -335,20 +348,27 @@ const parseAIAnalysis = (text: string) => {
   
   // 2. Parse radar dimensions (六边形评分维度)
   const dimensions: RadarDimension[] = []
-  const pattern = /\*\s*([^:：\n]+)[：:]\s*(\d+(?:\.\d+)?)\s*(?:\(([^)]+)\))?/g
-  const matches = text.matchAll(pattern)
   
-  for (const match of matches) {
-    if (match[1] && match[2]) {
-      const name = match[1].trim()
-      const value = parseFloat(match[2])
-      const description = match[3] ? match[3].trim() : ''
+  // More flexible regex to handle various formatting
+  // Matches: * <whitespace> <name> : <number> (optional description)
+  // Supports both English and Chinese colons
+  const radarRegex = /^\s*[\*•]\s+([^:：\n]+?)\s*[：:]\s*([0-5](?:\.\d{1,2})?)\s*(?:\(([^)]*)\))?/gm
+  let radarMatch
+  
+  while ((radarMatch = radarRegex.exec(text)) !== null) {
+    if (radarMatch[1] && radarMatch[2]) {
+      const name = radarMatch[1].trim()
+      const value = parseFloat(radarMatch[2])
+      const description = radarMatch[3] ? radarMatch[3].trim() : ''
       
-      if (value >= 0 && value <= 5 && name.length > 1 && name.length < 30) {
+      // Validate: name length between 2-40 chars, value between 0-5
+      if (name.length > 1 && name.length <= 40 && value >= 0 && value <= 5) {
         dimensions.push({ name, value, description })
       }
     }
   }
+  
+  console.log(`[Radar Parse] Found ${dimensions.length} dimensions:`, dimensions)
   
   radarDimensions.value = dimensions.length >= 6 ? dimensions.slice(0, 6) : [
     { name: '动作指数', value: 3.5, description: '快节奏游戏偏好' },

@@ -18,7 +18,7 @@
           />
           <div>
             <div style="color: #a0aec0; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.25rem;">
-              被告玩家
+              {{ $t('export.defendantPlayer') }}
             </div>
             <div style="color: #fbbf24; font-size: 1.3rem; font-weight: 700; text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);">
               {{ playerName }}

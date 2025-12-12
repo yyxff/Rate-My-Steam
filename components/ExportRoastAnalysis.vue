@@ -3,7 +3,7 @@
     <div class="analysis-card">
       <h3 class="section-title">
         <span class="title-icon">🔍</span>
-        罪名清单
+        {{ $t('export.listOfCharges') }}
       </h3>
       <div class="charges-grid">
         <div v-for="(item, index) in charges" :key="index" class="charge-item">

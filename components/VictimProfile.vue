@@ -3,27 +3,27 @@
     <div class="profile-card">
       <div class="card-header">
         <span class="header-icon">⚖️</span>
-        <h3 class="header-title">受害者档案</h3>
+        <h3 class="header-title">{{ $t('export.victimProfile') }}</h3>
       </div>
       <div class="profile-content">
         <div class="profile-item">
-          <span class="item-label">玩家</span>
+          <span class="item-label">{{ $t('export.player') }}</span>
           <span class="item-value player-name">{{ playerName }}</span>
         </div>
         <div class="profile-stats">
           <div class="stat-item">
-            <span class="stat-label">游戏囤积症</span>
+            <span class="stat-label">{{ $t('export.gamesHoardingDisorder') }}</span>
             <div class="stat-value">
               <span class="highlight-number">{{ totalGames }}</span>
-              <span class="unit">款</span>
+              <span class="unit">{{ $t('export.totalGames') }}</span>
             </div>
           </div>
           <div class="stat-divider"></div>
           <div class="stat-item">
-            <span class="stat-label">人生虚度</span>
+            <span class="stat-label">{{ $t('export.lifeWasted') }}</span>
             <div class="stat-value">
               <span class="highlight-number">{{ totalHours }}</span>
-              <span class="unit">h</span>
+              <span class="unit">{{ $t('export.totalHours') }}</span>
             </div>
           </div>
         </div>
@@ -33,6 +33,8 @@
 </template>
 
 <script setup lang="ts">
+const { t: $t } = useI18n()
+
 interface Props {
   playerName: string
   totalGames: number
