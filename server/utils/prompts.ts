@@ -122,8 +122,8 @@ ${steamData.games
 请以轻松幽默的方式：
 1. 给玩家起个的"游戏人格"称号，注意这个称号不要用简单的关键词堆砌，而是用一个连贯的短语称号，长度可以略长，但不要超过 20 个字，精炼一点，风格可以类似日本的轻小说标题，中间不要出现逗号或者顿号，所以你要考虑连贯性。
 且这个称号一定要以 "@游戏人格:xxxx" 的格式输出，注意冒号是英文冒号,用于后续解析
-2. 调侃一下这些游戏选择（但要友善），不用一对一评价每个游戏，可以尽情使用网络上对相关游戏和玩家的梗和笑话以及刻板印象用于调侃，也要考虑到每个游戏的具体时长
-对于每个评价，用一个短语去总结，作为“罪名“，可以涉及一个或多个游戏。然后用一两句话进行淡淡的调侃，可以刻薄。先用“@罪名:xxx“的方式输出，之后必须换行再写内容，每个罪名单独一行，注意冒号是英文冒号，用于后续解析
+2. 调侃一下这些游戏选择（但要友善），一对一评价每个游戏，可以尽情使用网络上对相关游戏和玩家的梗和笑话以及刻板印象用于调侃，也要考虑到每个游戏的具体时长
+对于每个评价，用一个短语去总结，作为“罪名“。然后用一两句话进行淡淡的调侃，可以刻薄。先用“@罪名:xxx“的方式输出，之后必须换行再写内容，每个罪名单独一行，注意冒号是英文冒号，用于后续解析
 3. 用刻薄或者略带攻击性的文字总结游戏风格，但要让玩家感到被理解和接受，而不是被羞辱
 4. 给个好玩的评分，共六个维度，给出具体的分数，0～5 分精确到小数点后一位（比如"氪金度"、"肝度"、“手柄阵亡率“等自创维度，具体根据游戏类型和性格分析来）
 
@@ -204,7 +204,7 @@ Please deliver your roast in a relaxed, humorous way:
 
 1. Give the player a "gaming personality" title in the format "@游戏人格:xxxx" (use English colon). The title should be a cohesive phrase (not keyword stacking), max 20 characters, flowing like a light novel title, no commas.
 
-2. Roast their game choices with friendly mockery. You don't need to rate each game individually. Use gaming memes and stereotypes. For each roast, create a short "charge" (罪名) covering one or more games. Format: "@罪名:xxx" on one line, then press enter and write 1-2 sentences of witty mockery on the next line. Use English colons for parsing.
+2. Roast their game choices with friendly mockery. You need to rate each game individually. Use gaming memes and stereotypes. For each roast, create a short "charge" (罪名) covering one or more games. Format: "@罪名:xxx" on one line, then press enter and write 1-2 sentences of witty mockery on the next line. Use English colons for parsing.
 
 3. Summarize their gaming style with slightly cutting but accepting language - make them feel understood, not humiliated.
 
