@@ -37,7 +37,7 @@ fi
 
 # 启动服务
 echo -e "${BLUE}🚀 启动容器...${NC}"
-docker-compose up -d
+docker compose up -d
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ 启动失败${NC}"
@@ -55,9 +55,9 @@ echo -e "  ✓ HTTP 自动重定向到 HTTPS"
 echo -e "  ✓ 证书到期前自动续期（每 60 天）"
 echo ""
 echo -e "${BLUE}常用命令:${NC}"
-echo -e "  查看应用日志: ${GREEN}docker-compose logs -f app${NC}"
-echo -e "  查看 Caddy 日志: ${GREEN}docker-compose logs -f caddy${NC}"
+echo -e "  查看应用日志: ${GREEN}docker compose logs -f app${NC}"
+echo -e "  查看 Caddy 日志: ${GREEN}docker compose logs -f caddy${NC}"
 echo -e "  查看证书状态: ${GREEN}docker exec \$(docker ps -qf name=caddy) caddy list-certificates${NC}"
-echo -e "  停止服务: ${GREEN}docker-compose down${NC}"
-echo -e "  重启服务: ${GREEN}docker-compose restart${NC}"
+echo -e "  停止服务: ${GREEN}docker compose down${NC}"
+echo -e "  重启服务: ${GREEN}docker compose restart${NC}"
 echo ""

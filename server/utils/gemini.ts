@@ -38,7 +38,7 @@ export async function analyzeGamesWithGemini(steamData: any, promptId?: string, 
     console.log(`Sending data to Gemini AI using prompt: ${promptTemplate.name} (${language})`)
     
     const response = await client.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.5-flash-lite',
       contents: prompt
     })
 
