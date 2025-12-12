@@ -5,9 +5,10 @@ import { getActivePrompt, getPromptById } from './prompts'
  * Analyze Steam gaming data using Gemini AI
  * @param steamData - Steam player data including games, stats, and player info
  * @param promptId - Optional prompt template ID (defaults to active prompt)
+ * @param language - Optional language for response ('en' or 'zh')
  * @returns AI analysis result or null if failed
  */
-export async function analyzeGamesWithGemini(steamData: any, promptId?: string) {
+export async function analyzeGamesWithGemini(steamData: any, promptId?: string, language?: string) {
   const config = useRuntimeConfig()
   const apiKey = process.env.GEMINI_API_KEY
 
@@ -19,13 +20,25 @@ export async function analyzeGamesWithGemini(steamData: any, promptId?: string) 
   try {
     const client = new GoogleGenAI({ apiKey })
 
-    // Get the prompt template (use specified ID or default active prompt)
-    const promptTemplate = promptId ? getPromptById(promptId) : getActivePrompt()
-    const prompt = promptTemplate.template(steamData)
+    // Determine which prompt to use based on language
+    // If no promptId specified, default to 'fun' in Chinese or 'fun-en' in English
+    let effectivePromptId = promptId
+    
+    if (!effectivePromptId) {
+      effectivePromptId = language === 'en' ? 'fun-en' : 'fun'
+    } else if (language === 'en' && effectivePromptId === 'fun') {
+      // If user selected 'fun' but language is English, use the English version
+      effectivePromptId = 'fun-en'
+    }
 
-    console.log(`Sending data to Gemini AI using prompt: ${promptTemplate.name}`)
+    const promptTemplate = getPromptById(effectivePromptId)
+    const prompt = promptTemplate.template(steamData)
+    console.log(prompt)
+    
+    console.log(`Sending data to Gemini AI using prompt: ${promptTemplate.name} (${language})`)
+    
     const response = await client.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       contents: prompt
     })
 

@@ -473,9 +473,15 @@ const fetchAIAnalysis = async (data: SteamApiResponse) => {
   try {
     console.log(`=== Sending to AI for Analysis (using prompt: ${selectedPromptId.value}) ===`)
     
+    // 创建数据副本，添加语言信息
+    const analysisData = {
+      ...data,
+      _language: language.value
+    }
+    
     const response = await $fetch<{ success: boolean; analysis: string | null }>('/api/steam/analyze', {
       method: 'POST',
-      body: data,
+      body: analysisData,
       params: {
         promptId: selectedPromptId.value
       }

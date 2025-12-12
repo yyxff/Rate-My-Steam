@@ -11,15 +11,22 @@ export default defineEventHandler(async (event) => {
   // Optional: Get prompt ID from query params
   const query = getQuery(event)
   const promptId = query.promptId as string | undefined
+  
+  // Extract language from body
+  const language = body._language || 'en'
+  
+  // Remove language from body before passing to Gemini
+  const { _language, ...steamData } = body
 
   try {
-    // Call Gemini AI analysis with optional prompt ID
-    const analysis = await analyzeGamesWithGemini(body, promptId)
+    // Call Gemini AI analysis with optional prompt ID and language
+    const analysis = await analyzeGamesWithGemini(steamData, promptId, language)
     
     return {
       success: true,
       analysis,
-      promptId: promptId || 'default'
+      promptId: promptId || 'default',
+      language
     }
   } catch (error: any) {
     console.error('AI Analysis Error:', error)
