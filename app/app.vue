@@ -67,6 +67,13 @@
       </div>
 
       <div class="input-section">
+        <!-- Steam ID Guide Link -->
+        <div class="steam-id-guide">
+          <span @click="showGuideModal = true" class="guide-link">
+            How to find your Steam ID?
+          </span>
+        </div>
+
         <div class="input-wrapper">
           <input
             v-model="steamId"
@@ -223,6 +230,30 @@
         :roastCharges="roastCharges"
       />
     </div>
+
+    <!-- Steam ID Guide Modal -->
+    <div v-if="showGuideModal" class="guide-modal-overlay" @click="showGuideModal = false">
+      <div class="guide-modal" @click.stop>
+        <button class="close-btn" @click="showGuideModal = false">×</button>
+        <div class="guide-content">
+          <h2>How to find your Steam ID</h2>
+          <div class="guide-grid">
+            <!-- Step 1 -->
+            <div class="guide-step">
+              <div class="step-header">Step 1: Visit Steam Account Details</div>
+              <img src="/assets/steam-guide-1.png" alt="Visit Steam Profile" class="guide-image" />
+              <p>Go to the top right of your Steam home page and click above button through your steam username</p>
+            </div>
+            <!-- Step 2 -->
+            <div class="guide-step">
+              <div class="step-header">Step 2: Copy Your Steam ID</div>
+              <img src="/assets/steam-guide-2.png" alt="Copy Steam ID" class="guide-image" />
+              <p>You should find your steam ID on the top left. Copy the Steam ID from your profile.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -264,6 +295,7 @@ const personalityTitle = ref<string>('')
 const roastContent = ref<string>('')
 const exportTemplateRef = ref<{ rootRef: HTMLElement } | null>(null)
 const roastCharges = ref<{ charge: string; comment: string }[]>([])
+const showGuideModal = ref(false)
 
 // Computed: Sorted games by playtime
 const sortedGames = computed(() => {
@@ -773,6 +805,27 @@ body {
 
 .input-section {
   margin-bottom: 3rem;
+}
+
+.steam-id-guide {
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.guide-link {
+  font-size: 0.9rem;
+  color: #667eea;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  padding: 0 0 2px 0;
+}
+
+.guide-link:hover {
+  color: #764ba2;
+  border-bottom-color: #764ba2;
 }
 
 .input-wrapper {
@@ -1495,6 +1548,153 @@ body {
   font-size: 0.85rem;
   color: #a0aec0;
   line-height: 1.4;
+}
+
+/* Steam ID Guide Modal */
+.guide-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.guide-modal {
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 16px;
+  padding: 2.5rem;
+  max-width: 900px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: slideUp 0.3s ease-out;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.guide-modal h2 {
+  color: #e0e6ff;
+  font-size: 1.8rem;
+  margin: 0 0 2rem 0;
+  text-align: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.close-btn {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e0e6ff;
+  font-size: 1.8rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #667eea;
+}
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.guide-step {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.guide-step:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(102, 126, 234, 0.4);
+  transform: translateY(-5px);
+}
+
+.step-header {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #667eea;
+  margin-bottom: 1rem;
+}
+
+.guide-image {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  margin-bottom: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  min-height: 200px;
+  object-fit: cover;
+}
+
+.guide-step p {
+  font-size: 0.95rem;
+  color: #cbd5e0;
+  line-height: 1.6;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .guide-modal {
+    padding: 1.5rem;
+    width: 95%;
+  }
+
+  .guide-modal h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .guide-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .close-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.5rem;
+  }
 }
 
 @media (max-width: 1400px) {
