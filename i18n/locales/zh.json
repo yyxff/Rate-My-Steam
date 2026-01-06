@@ -1,0 +1,57 @@
+{
+  "common": {
+    "appName": "Rate My Steam",
+    "subtitle": "通过 AI 发现你的游戏人格"
+  },
+  "nav": {
+    "github": "在 GitHub 上查看源代码"
+  },
+  "hero": {
+    "title": "RATE MY STEAM",
+    "subtitle": "通过 AI 发现你的游戏人格"
+  },
+  "input": {
+    "placeholder": "输入 Steam ID 或profile URL",
+    "guideLink": "如何找到你的 Steam ID?",
+    "analyzeBtn": "分析档案",
+    "languageLabel": "English"
+  },
+  "features": {
+    "gamingStyle": "游戏风格",
+    "personality": "人格特征",
+    "deepAnalysis": "深度分析"
+  },
+  "sidebar": {
+    "topGames": "10 款最常玩的游戏",
+    "games": "款游戏",
+    "hoursTotal": "小时总时长"
+  },
+  "analysis": {
+    "aiAnalysis": "AI 分析",
+    "analyzing": "AI 正在分析你的游戏档案...",
+    "waiting": "等待 AI 分析...",
+    "error": "获取 AI 分析失败。请检查是否正确配置了 GEMINI_API_KEY。",
+    "empty": "AI 分析返回空结果",
+    "download": "下载为图片"
+  },
+  "export": {
+    "gamingPersonality": "游戏人格",
+    "victimProfile": "受害者档案",
+    "player": "玩家",
+    "gamesHoardingDisorder": "游戏囤积症",
+    "lifeWasted": "人生虚度",
+    "totalGames": "款",
+    "totalHours": "h",
+    "listOfCharges": "罪名清单",
+    "defendantPlayer": "被告玩家",
+    "downloadButton": "下载为图片",
+    "downloading": "下载中..."
+  },
+  "guide": {
+    "title": "如何找到你的 Steam ID",
+    "step1Header": "第 1 步：访问 Steam 账户详情",
+    "step1Desc": "前往你的 Steam 主页右上角，点击你的用户名下方的按钮",
+    "step2Header": "第 2 步：复制你的 Steam ID",
+    "step2Desc": "你应该会在左上角找到你的 Steam ID。从你的个人资料中复制 Steam ID。"
+  }
+}

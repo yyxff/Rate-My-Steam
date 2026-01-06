@@ -1,0 +1,57 @@
+{
+  "common": {
+    "appName": "Rate My Steam",
+    "subtitle": "Discover your gaming personality through AI"
+  },
+  "nav": {
+    "github": "View source on GitHub"
+  },
+  "hero": {
+    "title": "RATE MY STEAM",
+    "subtitle": "Discover your gaming personality through AI"
+  },
+  "input": {
+    "placeholder": "Enter Steam ID or Profile URL",
+    "guideLink": "How to find your Steam ID?",
+    "analyzeBtn": "Analyze Profile",
+    "languageLabel": "简体中文"
+  },
+  "features": {
+    "gamingStyle": "Gaming Style",
+    "personality": "Personality",
+    "deepAnalysis": "Deep Analysis"
+  },
+  "sidebar": {
+    "topGames": "Top 10 Most Played Games",
+    "games": "games",
+    "hoursTotal": "hours total"
+  },
+  "analysis": {
+    "aiAnalysis": "AI Analysis",
+    "analyzing": "AI is analyzing your gaming profile...",
+    "waiting": "Waiting for AI analysis...",
+    "error": "Failed to get AI analysis. Please check if GEMINI_API_KEY is properly configured.",
+    "empty": "AI analysis returned empty result",
+    "download": "Download as Image"
+  },
+  "export": {
+    "gamingPersonality": "Gaming Personality",
+    "victimProfile": "Victim Profile",
+    "player": "Player",
+    "gamesHoardingDisorder": "Games Hoarding Disorder",
+    "lifeWasted": "Life Wasted",
+    "totalGames": "games",
+    "totalHours": "hours",
+    "listOfCharges": "List of Charges",
+    "defendantPlayer": "Defendant Player",
+    "downloadButton": "Download as Image",
+    "downloading": "Downloading..."
+  },
+  "guide": {
+    "title": "How to find your Steam ID",
+    "step1Header": "Step 1: Visit Steam Account Details",
+    "step1Desc": "Go to the top right of your Steam home page and click above button through your steam username",
+    "step2Header": "Step 2: Copy Your Steam ID",
+    "step2Desc": "You should find your steam ID on the top left. Copy the Steam ID from your profile."
+  }
+}
